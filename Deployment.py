@@ -40,3 +40,37 @@ envir = requests.post(base+'repository/ci/Environments/new-ci-envir', data = myx
 
 print envir.text
 
+
+#---Prepare an initial deployment ： retrieve a "deployment spec", specifit the Environment and package version in the request  
+headers = {'Content-Type': 'application/xml'}
+
+initial_deployment = requests.get(base+'deployment/prepare/initial/?environment=Environments/new-ci-envir&version=Applications/PetClinic-ear/1.0', auth = (password.login, password.pw))
+print initial_deployment.text
+
+#---Preview the deployment plan before mapping : calculate the plan that XLdeploy will execute for the given deployment(initial_deployment). the input of this step is the output of initialization(xml data)
+
+preview_deployment = requests.post(base+'deployment/previewblock', data = initial_deployment.text, headers = headers, auth = (password.login, password.pw))
+print preview_deployment.text
+
+#---Mapping the deployment plan to the target environment
+map_deployment = requests.post(base+'deployment/prepare/deployeds', data = initial_deployment.text, headers = headers, auth = (password.login, password.pw))
+print map_deployment.text
+
+#---Preview again the deployment plan after mapping, we can check the update after mapping 
+preview2_deployment = requests.post(base+'deployment/previewblock', data = map_deployment.text, headers = headers, auth = (password.login, password.pw))
+print preview2_deployment.text
+
+
+#---Validate the deployment :  pass the deployment spec to POST /deployment/validate to validate the deployment spec
+vali_deployment = requests.post(base+'deployment/validate', data = map_deployment.text, headers = headers, auth = (password.login, password.pw))
+print vali_deployment.text
+
+#---Create a deployment task : after validation, submit the deployment spec to the server to create a deployment task that is prepared to run, the output of this step is a task ID which are waiting for start
+task_deployment = requests.post(base+'deployment', data = vali_deployment.text, headers = headers, auth = (password.login, password.pw))
+print task_deployment.text
+
+#---Pass the ID of task to /task/{taskid}/start, start the deployment task
+task_start = requests.post(base+'task/'+task_deployment.text+'/start', headers = headers, auth = (password.login, password.pw))
+print task_start.text
+
+
